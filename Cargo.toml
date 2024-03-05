@@ -13,6 +13,7 @@ opt-level = 3
 
 [dependencies]
 crossbeam = { version = "0.8.4", features = ["crossbeam-channel", "crossbeam-queue", "crossbeam-deque"] }
+memmap2 = "0.9.4"
 parking_lot = "0.12.1"
 rustc-hash = "1.1.0"
 smol_str = "0.2.1"
