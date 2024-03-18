@@ -12,7 +12,9 @@ opt-level = 3
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+arrayvec = "0.7.4"
 crossbeam = { version = "0.8.4", features = ["crossbeam-channel", "crossbeam-queue", "crossbeam-deque"] }
+fnv = "1.0.7"
 memmap2 = "0.9.4"
 parking_lot = "0.12.1"
 rustc-hash = "1.1.0"

@@ -32,11 +32,6 @@ pub fn main() {
     }
     println!("final split_points: {:?}", split_points);
 
-    for (&start, &end) in split_points.iter().zip(split_points.iter().skip(1)) {
-        mmap.advise_range(memmap2::Advice::Sequential, start, end - start)
-            .unwrap();
-    }
-
     // spin up a thread for each chunk and process them.
     let result = std::thread::scope(|scope| {
         split_points

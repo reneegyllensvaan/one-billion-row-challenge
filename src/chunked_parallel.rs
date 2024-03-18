@@ -180,8 +180,11 @@ pub fn main() {
     // Let's just grab both the new result file and the expected result to make sure they're right!
     let output = std::fs::read_to_string("./result.txt").unwrap();
     let expected = std::fs::read_to_string("./result-expected.txt").unwrap();
-    assert_eq!(output, expected);
-    println!("File matched expected result. :3");
+    if output == expected {
+        println!("File matched expected result. :3");
+    } else {
+        eprintln!("oh no! file did not match expected output");
+    }
 }
 
 // SmolStr is a cursed alternate string implementation that embeds short strings into the

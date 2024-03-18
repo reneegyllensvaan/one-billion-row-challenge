@@ -8,24 +8,27 @@ sums = defaultdict(float)
 mins = dict()
 maxs = dict()
 
+numbers = defaultdict(list)
+
 with open('./measurements.txt', 'r') as f:
     for line in f.readlines():
         loc, amount = line.split(';')
         amount = float(amount)
-        counts[loc] += 1
-        sums[loc] += amount
 
         if loc in mins:
             mins[loc] = min(mins[loc], amount)
         else:
             mins[loc] = amount
-
         if loc in maxs:
             maxs[loc] = max(maxs[loc], amount)
         else:
             maxs[loc] = amount
 
-print(f"count = {sum(counts.values())}")
+for loc, ns in numbers.items():
+    count = len(ns)
+    s = sum(ns)
+
+print(f"counts = {sum(counts.values())}")
 
 # print(f"counts = {counts}")
 # print(f"sums = {sums}")
