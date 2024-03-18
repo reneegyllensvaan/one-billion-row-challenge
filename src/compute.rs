@@ -1,6 +1,6 @@
 use std::collections::hash_map::Entry;
 type N = i32;
-pub type StrImpl = arrayvec::ArrayString<36>;
+pub type StrImpl = String;
 pub type AggMap = rustc_hash::FxHashMap<StrImpl, Aggregate>;
 
 #[derive(Debug, PartialEq)]
@@ -60,18 +60,18 @@ pub fn process_chunk(chunk: &[u8], totals: &mut AggMap) {
             }
             let location = std::str::from_utf8_unchecked(&chunk[i..end]);
 
-            match totals.entry(StrImpl::from(location).unwrap()) {
-                Entry::Occupied(entry) => {
-                    entry.into_mut().insert(val);
-                }
-                Entry::Vacant(entry) => {
-                    entry.insert(Aggregate {
+            if let Some(entry) = totals.get_mut(location) {
+                entry.insert(val);
+            } else {
+                totals.insert(
+                    location.to_string(),
+                    Aggregate {
                         count: 1,
                         sum: val,
                         min: val,
                         max: val,
-                    });
-                }
+                    },
+                );
             }
 
             if i < 2 {
