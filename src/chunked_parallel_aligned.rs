@@ -3,7 +3,7 @@ use std::{fmt::Write, io::Read};
 
 // here we can tweak the buffer size. anything decently big but not too big seems to be reasonably
 // fast.
-pub const BUF_SIZE: usize = 1 << 23;
+pub const BUF_SIZE: usize = 1 << 24;
 
 pub fn main() {
     println!("using chunk size of: {:?}", BUF_SIZE);
@@ -18,7 +18,6 @@ pub fn main() {
         let rx = rx.clone();
         let buf_tx = buf_tx.clone();
         threads.push(std::thread::spawn(move || {
-            // let mut totals = AggMap::with_capacity_and_hasher(0, <_>::default());
             let mut totals = AggMap::default();
             while let Ok((buf, read, leftover)) = rx.recv() {
                 let mut start_offset = 0;
