@@ -1,3 +1,5 @@
+use crossbeam::channel;
+use rustc_hash::FxHashMap;
 use std::{alloc::Layout, fmt::Write, io::Read};
 
 // welcome to my solution to the one billion row challenge!
@@ -8,8 +10,8 @@ use std::{alloc::Layout, fmt::Write, io::Read};
 // latest benchmarking run landed at an average of 2.75 seconds for the full 1B rows, across 10
 // runs, on my m1 macbook.
 fn main() {
-    println!("using chunk size of: {:?}", BUF_SIZE);
-    let begin = std::time::Instant::now();
+    // println!("using chunk size of: {:?}", BUF_SIZE);
+    // let begin = std::time::Instant::now();
 
     // Step 1. We spin up NUM_CORES worker threads that will process chunks sent from the main
     // reader thread.
@@ -17,10 +19,10 @@ fn main() {
     let num_threads = std::thread::available_parallelism().unwrap().get() - 0;
     // This is the channel where we send the actual chunks, along with the used length and any
     // leftover partial record from the prior chunk.
-    let (tx, rx) = crossbeam::channel::bounded::<(Box<[u8]>, usize, Option<Vec<u8>>)>(4);
+    let (tx, rx) = channel::bounded::<(Box<[u8]>, usize, Option<Vec<u8>>)>(4);
     // This is the hack for doing some hacky buffer pooling. When we're done with a buffer, we send
     // it back over this channel, for potential reuse
-    let (buf_tx, buf_rx) = crossbeam::channel::bounded::<Box<[u8]>>(4);
+    let (buf_tx, buf_rx) = channel::bounded::<Box<[u8]>>(4);
     let mut threads = Vec::new();
     for _ in 0..num_threads {
         let rx = rx.clone();
@@ -48,16 +50,14 @@ fn main() {
     let mut input = std::fs::File::open("./measurements.txt").unwrap();
     let mut read;
     let mut leftover = None;
-    let mut num_chunks = 0;
-    let mut num_allocs = 0;
+    // let mut num_chunks = 0;
+    // let mut num_allocs = 0;
     loop {
-        let mut buf = buf_rx.try_recv().unwrap_or_else(|_| {
-            num_allocs += 1;
-            unsafe {
-                Box::<[u8]>::from_raw(std::alloc::alloc(Layout::from_size_align_unchecked(
-                    BUF_SIZE, 16384,
-                )) as *mut [u8; BUF_SIZE])
-            }
+        let mut buf = buf_rx.try_recv().unwrap_or_else(|_| unsafe {
+            // num_allocs += 1;
+            Box::<[u8]>::from_raw(std::alloc::alloc(Layout::from_size_align_unchecked(
+                BUF_SIZE, 16384,
+            )) as *mut [u8; BUF_SIZE])
         });
         read = input.read(&mut buf).unwrap();
         if read == 0 {
@@ -73,11 +73,11 @@ fn main() {
         };
         tx.send((buf, read - chopped_tail, leftover)).unwrap();
         leftover = new_leftover;
-        num_chunks += 1;
+        // num_chunks += 1;
     }
     drop(tx);
 
-    let begin_summarize = std::time::Instant::now();
+    // let begin_summarize = std::time::Instant::now();
     let mut totals = AggMap::default();
     for t in threads {
         for (name, agg) in t.join().unwrap() {
@@ -87,7 +87,7 @@ fn main() {
 
     let mut result = totals.into_iter().collect::<Vec<_>>();
     result.sort_unstable_by(|a, b| a.0.cmp(&b.0));
-    let total_counts: f64 = result.iter().map(|v| v.1.count as f64).sum();
+    // let total_counts: f64 = result.iter().map(|v| v.1.count as f64).sum();
     let mut out = String::with_capacity(result.len() * 35);
     for (k, v) in result {
         write!(
@@ -102,39 +102,41 @@ fn main() {
     }
     std::fs::write("./result.txt", out).unwrap();
 
-    // We made it!
-    let end = std::time::Instant::now();
-    println!("elapsed: {}ms", (end - begin).as_millis());
-    println!(
-        "elapsed (summary only): {}ms",
-        (end - begin_summarize).as_millis()
-    );
-    println!(
-        "real input would take roughly: {} seconds",
-        (end - begin).as_secs_f64() * (1_000_000_000. / total_counts)
-    );
+    // // We made it!
+    // let end = std::time::Instant::now();
+    // println!("elapsed: {}ms", (end - begin).as_millis());
+    // println!(
+    //     "elapsed (summary only): {}ms",
+    //     (end - begin_summarize).as_millis()
+    // );
+    // println!(
+    //     "real input would take roughly: {} seconds",
+    //     (end - begin).as_secs_f64() * (1_000_000_000. / total_counts)
+    // );
 
-    // Let's just grab both the new result file and the expected result to make sure they're right!
-    let output = std::fs::read_to_string("./result.txt").unwrap();
-    let expected = std::fs::read_to_string("./result-expected.txt").unwrap();
-    if output == expected {
-        println!("File matched expected result. :3");
-    } else {
-        eprintln!("oh no! file did not match expected output");
-    }
+    // // Let's just grab both the new result file and the expected result to make sure they're right!
+    // let output = std::fs::read_to_string("./result.txt").unwrap();
+    // let expected = std::fs::read_to_string("./result-expected.txt").unwrap();
+    // if output == expected {
+    //     println!("File matched expected result. :3");
+    // } else {
+    //     eprintln!("oh no! file did not match expected output");
+    // }
 
-    println!("num_chunks: {:?}", num_chunks);
-    println!("num_allocs: {:?}", num_allocs);
+    // println!("num_chunks: {:?}", num_chunks);
+    // println!("num_allocs: {:?}", num_allocs);
+
+    std::process::exit(0);
 }
 
 // here we can tweak the buffer size. anything decently big but not too big seems to be reasonably
 // fast.
-pub const BUF_SIZE: usize = 1 << 24;
+pub const BUF_SIZE: usize = 1 << 23;
 
 // this can be tweaked - i32 fits all the sums, but barely!
 type N = i32;
 type StrImpl = String;
-type AggMap = rustc_hash::FxHashMap<StrImpl, Aggregate>;
+type AggMap = FxHashMap<StrImpl, Aggregate>;
 
 #[derive(Debug, PartialEq)]
 struct Aggregate {
